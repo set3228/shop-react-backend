@@ -61,7 +61,6 @@ export class ProductService extends Construct {
         code: lambda.Code.fromAsset(path.join(__dirname, './lambdas')),
         environment: {
           PRODUCTS_TABLE_NAME: productsTable.tableName,
-          STOCK_TABLE_NAME: stockTable.tableName,
         },
       },
     );
@@ -71,6 +70,8 @@ export class ProductService extends Construct {
 
     productsTable.grantReadData(getProductByIdLambda);
     stockTable.grantReadData(getProductByIdLambda);
+
+    productsTable.grantWriteData(createProductLambda);
 
     const api = new apigateway.RestApi(this, 'product-service-api', {
       restApiName: 'Product Service API Gateway',
