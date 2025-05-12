@@ -1,0 +1,16 @@
+{
+  "name": "lambdas",
+  "version": "1.0.0",
+  "main": "get-product-by-id-lambda.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "types": "./get-product-by-id-lambda.d.ts",
+  "description": "",
+  "dependencies": {
+    "uuid": "^11.1.0"
+  }
+}
