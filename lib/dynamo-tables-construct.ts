@@ -5,15 +5,18 @@ import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 
 export class DynamoTablesConstruct extends Construct {
+  public readonly productsTable: dynamodb.Table;
+  public readonly stockTable: dynamodb.Table;
+
   constructor(scope: Construct, id: string) {
     super(scope, id);
 
-    const productsTable = new dynamodb.Table(this, 'ProductsTable', {
+    this.productsTable = new dynamodb.Table(this, 'ProductsTable', {
       partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
       tableName: 'products',
     });
 
-    const stockTable = new dynamodb.Table(this, 'StockTable', {
+    this.stockTable = new dynamodb.Table(this, 'StockTable', {
       partitionKey: { name: 'product_id', type: dynamodb.AttributeType.STRING },
       tableName: 'stock',
     });
@@ -25,12 +28,12 @@ export class DynamoTablesConstruct extends Construct {
       handler: 'seed-products-lambda.main',
       code: lambda.Code.fromAsset(path.join(__dirname, './lambdas')),
       environment: {
-        PRODUCTS_TABLE_NAME: productsTable.tableName,
-        STOCK_TABLE_NAME: stockTable.tableName,
+        PRODUCTS_TABLE_NAME: this.productsTable.tableName,
+        STOCK_TABLE_NAME: this.stockTable.tableName,
       },
     });
 
-    productsTable.grantReadWriteData(seedProductsLambda);
-    stockTable.grantReadWriteData(seedProductsLambda);
+    this.productsTable.grantReadWriteData(seedProductsLambda);
+    this.stockTable.grantReadWriteData(seedProductsLambda);
   }
 }

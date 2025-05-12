@@ -7,7 +7,8 @@ export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    new ProductService(this, 'ProductService');
-    new DynamoTablesConstruct(this, 'DynamoTables');
+    const dynamoTables = new DynamoTablesConstruct(this, 'DynamoTables');
+
+    new ProductService(this, 'ProductService', { dynamoTables });
   }
 }

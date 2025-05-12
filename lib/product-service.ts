@@ -3,10 +3,20 @@ import * as cdk from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as path from 'node:path';
 import { Construct } from 'constructs';
+import { Table } from 'aws-cdk-lib/aws-dynamodb';
+
+interface ProductServiceProps {
+  dynamoTables: {
+    productsTable: Table;
+    stockTable: Table;
+  }
+}
 
 export class ProductService extends Construct {
-  constructor(scope: Construct, id: string) {
+  constructor(scope: Construct, id: string, props: ProductServiceProps) {
     super(scope, id);
+
+    const { dynamoTables: { productsTable, stockTable } } = props;
 
     const getProductsLambda = new lambda.Function(
       this,
@@ -17,6 +27,10 @@ export class ProductService extends Construct {
         timeout: cdk.Duration.seconds(5),
         handler: 'get-products-lambda.main',
         code: lambda.Code.fromAsset(path.join(__dirname, './lambdas')),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCK_TABLE_NAME: stockTable.tableName,
+        },
       },
     );
 
@@ -29,8 +43,34 @@ export class ProductService extends Construct {
         timeout: cdk.Duration.seconds(5),
         handler: 'get-product-by-id-lambda.main',
         code: lambda.Code.fromAsset(path.join(__dirname, './lambdas')),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCK_TABLE_NAME: stockTable.tableName,
+        },
       },
     );
+
+    const createProductLambda = new lambda.Function(
+      this,
+      'create-product-lambda',
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        memorySize: 1024,
+        timeout: cdk.Duration.seconds(5),
+        handler: 'create-product-lambda.main',
+        code: lambda.Code.fromAsset(path.join(__dirname, './lambdas')),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCK_TABLE_NAME: stockTable.tableName,
+        },
+      },
+    );
+
+    productsTable.grantReadData(getProductsLambda);
+    stockTable.grantReadData(getProductsLambda);
+
+    productsTable.grantReadData(getProductByIdLambda);
+    stockTable.grantReadData(getProductByIdLambda);
 
     const api = new apigateway.RestApi(this, 'product-service-api', {
       restApiName: 'Product Service API Gateway',
@@ -57,5 +97,11 @@ export class ProductService extends Construct {
     const productDataResource = productsResource.addResource('{productId}');
 
     productDataResource.addMethod('GET', getProductByIdLambdaIntegration);
+
+    const createProductLambdaIntegration = new apigateway.LambdaIntegration(
+      createProductLambda,
+    );
+
+    productsResource.addMethod('POST', createProductLambdaIntegration);
   }
 }
