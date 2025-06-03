@@ -4,5 +4,7 @@ import { ProductServiceStack } from '../lib/product-service/product-service-stac
 import { ImportServiceStack } from '../lib/import-service/import-service-stack';
 
 const app = new cdk.App();
-new ProductServiceStack(app, 'ProductServiceStack', {});
-new ImportServiceStack(app, 'ImportServiceStack', {});
+const productServiceStack = new ProductServiceStack(app, 'ProductServiceStack', {});
+const importServiceStack = new ImportServiceStack(app, 'ImportServiceStack', {});
+
+importServiceStack.addDependency(productServiceStack);

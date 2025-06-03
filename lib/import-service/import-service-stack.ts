@@ -3,12 +3,16 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as path from 'node:path';
 import type { Construct } from 'constructs';
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    const catalogItemsQueueUrl = cdk.Fn.importValue('CatalogItemsQueueUrl');
+    const catalogItemsQueueArn = cdk.Fn.importValue('CatalogItemsQueueArn');
 
     const importBucket = new s3.Bucket(this, 'ImportBucket', {
       versioned: true,
@@ -58,12 +62,19 @@ export class ImportServiceStack extends cdk.Stack {
         handler: 'import-file-parser-lambda.main',
         code: lambda.Code.fromAsset(path.join(__dirname, './lambdas')),
         environment: {
-          BUCKET_NAME: importBucket.bucketName,
+          SQS_QUEUE_URL: catalogItemsQueueUrl,
         },
       }
     );
 
     importBucket.grantRead(importFileParserLambda);
+
+    importFileParserLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['sqs:SendMessage'],
+        resources: [catalogItemsQueueArn],
+      })
+    );
 
     importBucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
