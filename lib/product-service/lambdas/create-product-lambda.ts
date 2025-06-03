@@ -14,7 +14,12 @@ interface CreateProductEvent {
 
 export async function main(event: APIGatewayProxyEvent) {
   const productsTableName = process.env.PRODUCTS_TABLE_NAME!;
-  const body = JSON.parse(event.body || "{}") as CreateProductEvent;
+
+  // Note: when the lambda is called via API Gateway we need to parse payload from the event.body
+  // when it's called by another lambda (importFileParser) we should parse event itself
+  const body = typeof event.body === "string"
+    ? JSON.parse(event.body)
+    : (event as unknown as CreateProductEvent);
 
   if (!body.title || !body.description || !body.price) {
     return {
@@ -33,6 +38,8 @@ export async function main(event: APIGatewayProxyEvent) {
       description: body.description,
       price: body.price,
     };
+
+    console.log('Processing product:', createdProduct);
 
     await docClient.send(
       new PutCommand({
