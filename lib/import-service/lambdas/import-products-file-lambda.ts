@@ -14,6 +14,8 @@ export async function main (event: APIGatewayProxyEvent) {
         body: JSON.stringify({ message: 'Missing file name in query parameters' }),
         headers: {
           'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+          'Access-Control-Allow-Methods': '*',
         },
       };
     }
@@ -33,6 +35,8 @@ export async function main (event: APIGatewayProxyEvent) {
       body: JSON.stringify(signedUrl),
       headers: {
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': '*',
       },
     };
   } catch (error) {
@@ -42,6 +46,8 @@ export async function main (event: APIGatewayProxyEvent) {
       body: JSON.stringify({ message: 'Internal server error' }),
       headers: {
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': '*',
       },
     };
   }
