@@ -13,6 +13,12 @@ export class ImportServiceStack extends cdk.Stack {
 
     const catalogItemsQueueUrl = cdk.Fn.importValue('CatalogItemsQueueUrl');
     const catalogItemsQueueArn = cdk.Fn.importValue('CatalogItemsQueueArn');
+    const basicAuthorizerLambdaArn = cdk.Fn.importValue('BasicAuthorizerLambdaArn');
+
+    const basicAuthorizer = lambda.Function.fromFunctionAttributes(this, 'ImportedBasicAuthorizer', {
+      functionArn: basicAuthorizerLambdaArn,
+      sameEnvironment: true,
+    });
 
     const importBucket = new s3.Bucket(this, 'ImportBucket', {
       versioned: true,
@@ -82,11 +88,48 @@ export class ImportServiceStack extends cdk.Stack {
       { prefix: 'uploaded/' }
     );
 
+    const authorizer = new apigateway.TokenAuthorizer(this, 'ImportAuthorizer', {
+      handler: basicAuthorizer,
+    });
+
     const api = new apigateway.RestApi(this, 'ImportServiceApi', {
       restApiName: 'Import Service API',
     });
 
     const importResource = api.root.addResource('import');
-    importResource.addMethod('GET', new apigateway.LambdaIntegration(importProductsFileLambda));
+    importResource.addMethod('GET', new apigateway.LambdaIntegration(importProductsFileLambda), { authorizer });
+
+    // Note: we need to define response params for OPtIONS request to solve CORS issues
+    importResource.addMethod(
+      'OPTIONS',
+      new apigateway.MockIntegration({
+        integrationResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': "'*'",
+              'method.response.header.Access-Control-Allow-Headers': "'Authorization,Content-Type'",
+              'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'",
+            },
+          },
+        ],
+        passthroughBehavior: apigateway.PassthroughBehavior.NEVER,
+        requestTemplates: {
+          'application/json': '{"statusCode":200}',
+        },
+      }),
+      {
+        methodResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': true,
+              'method.response.header.Access-Control-Allow-Headers': true,
+              'method.response.header.Access-Control-Allow-Methods': true,
+            },
+          },
+        ],
+      }
+    );
   }
 }
